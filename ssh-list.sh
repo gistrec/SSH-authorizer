@@ -45,7 +45,7 @@ add() {
 	fi
 
 	# Удаляем преыддущий ключ
-	rm ~/.ssh/$server >/dev/null
+	rm ~/.ssh/$server 2>/dev/null
 	# Генерируем ключ
 	ssh-keygen -t rsa -q -N '' -f ~/.ssh/$server
 	# echo "$result"
@@ -103,6 +103,8 @@ show() {
 
 	id=0
 
+	lines_count=$(cat ~/.ssh/ssh-list | wc -l)
+
 	while read line
 	do
 		IFS=' ' read -r -a pieces <<< "$line"
@@ -114,6 +116,10 @@ show() {
 		host=$(getFormattedString "$host" 31)
 		echo "║ $id  ║$user║$host║"
 		id=$(($id + 1))
+		if [ "$id" != "$lines_count" ]
+		then
+			echo "╠════╬════════════╬═══════════════════════════════╣"
+		fi
 	done < ~/.ssh/ssh-list
 
 	echo "╚════╩════════════╩═══════════════════════════════╝"
