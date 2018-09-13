@@ -22,7 +22,7 @@ add() {
 	echo "User: $user"
 	echo "Host: $host"
 	echo "Passwd: $passwd"
-	read -p "Is this a good question (y/n)? " answer
+	read -p "Данные верны (y/n)? " answer
 
 	case $answer in
 		# Символы Y,y,Д,д
@@ -33,24 +33,37 @@ add() {
 		*) echo "Операция прервана"; exit 1;;
 	esac
 
-	key_name="$user@$host"
+	server="$user@$host"
 
 	# Проверка на то, что к ssh можно подключиться
 	# Выполняем на сервере команду echo 'work'
-	response=`sshpass -p "$passwd" ssh -o 'IdentitiesOnly=yes' $key_name 'echo "work"'`
+	response=`sshpass -p "$passwd" ssh -o 'IdentitiesOnly=yes' $server 'echo "work"'`
 	if [ "$response" != "work" ]
 	then
 		echo 'Не удалось подключиться к ssh'
 		exit 1
 	fi
 
+	# Удаляем преыддущий ключ
+	rm ~/.ssh/$server >/dev/null
 	# Генерируем ключ
-	ssh-keygen -t rsa -q -N '' -f ~/.ssh/$key_name
+	ssh-keygen -t rsa -q -N '' -f ~/.ssh/$server
+	# echo "$result"
 
-	# Добавляем ключ на удаленный сервер
-	
+	# Перемещаем ключ на удаленный сервер
+	sshpass -p "$passwd" scp -o 'IdentitiesOnly=yes' ~/.ssh/$server.pub $server:~
+	# Создаем директорию
+	sshpass -p "$passwd" ssh -o 'IdentitiesOnly=yes' $server \
+	"[ -d ~/.ssh ] || (mkdir ~/.ssh; chmod 711 ~/.ssh) && " \
+	"cat ~/$server.pub >> ~/.ssh/authorized_keys && " \
+	"chmod 600 ~/.ssh/authorized_keys && " \
+	"rm ~/$server.pub"
 
-	echo 'add'
+	sh-add ~/.ssh/$server 2>/dev/null
+
+	echo 'Сервер успешно добавлен'
+
+	# Добавляем строку с данными о сервере в файл
 }
 
 # В функции будем удалять существующий ssh сервер
