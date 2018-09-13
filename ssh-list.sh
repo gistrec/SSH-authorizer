@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Зависимости
 # 1. sshpass
@@ -59,11 +59,12 @@ add() {
 	"chmod 600 ~/.ssh/authorized_keys && " \
 	"rm ~/$server.pub"
 
-	sh-add ~/.ssh/$server 2>/dev/null
+	ssh-add ~/.ssh/$server 2>/dev/null
 
 	echo 'Сервер успешно добавлен'
 
 	# Добавляем строку с данными о сервере в файл
+	echo "$user $host" >> ~/.ssh/ssh-list
 }
 
 # В функции будем удалять существующий ssh сервер
@@ -76,6 +77,49 @@ delete() {
 # И устанавливать нужные права
 install() {
 	echo 'install'
+}
+
+# Добавляет пробелы спереди строки до тех пор, пока
+# строка не станет заданной длины
+# Входные данные:
+#     $1 - строка
+#     $2 - заданная длина строки
+getFormattedString() {
+	length=$(expr length $1)
+
+	need_spaces=$(($2 - $length - 1))
+
+	string=$(printf "%${need_spaces}s" ' ' | sed "s/ / /g")
+
+	echo "${string}${1} "
+}
+
+show() {
+	echo "╔═════════════════════════════════════════════════╗"
+	echo "║          Список доступных ssh серверов          ║"
+	echo "╠════╦════════════╦═══════════════════════════════╣"
+	echo "║ id ║    user    ║             host              ║"
+	echo "╠════╬════════════╬═══════════════════════════════╣"
+
+	id=0
+
+	while read line
+	do
+		IFS=' ' read -r -a pieces <<< "$line"
+		user="${pieces[0]}"
+		host="${pieces[1]}"
+
+		server_id=$(getFormattedString "$id" 4)
+		user=$(getFormattedString "$user" 12)
+		host=$(getFormattedString "$host" 31)
+		echo "║ $id  ║$user║$host║"
+		id=$(($id + 1))
+	done < ~/.ssh/ssh-list
+
+	echo "╚════╩════════════╩═══════════════════════════════╝"
+
+	echo "Напишите 'ssh-list -c <id>' для подключения к серверу"
+
 }
 
 # Количиство параметров у скрипта
@@ -98,4 +142,4 @@ then
 	exit 1
 fi
 
-# TODO: Добавить вывод списка серверов
+show
