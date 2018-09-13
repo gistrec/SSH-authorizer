@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Зависимости
+# 1. sshpass
+
 # Выводим сообщение о доступных параметрах
 help() {
 	echo "-h или -help    вывести этот текст"
@@ -11,6 +14,42 @@ help() {
 
 # В функции будем добавлять новый ssh сервер
 add() {
+	user=$1
+	host=$2
+	passwd=$3
+
+	echo "Добавление нового сервера"
+	echo "User: $user"
+	echo "Host: $host"
+	echo "Passwd: $passwd"
+	read -p "Is this a good question (y/n)? " answer
+
+	case $answer in
+		# Символы Y,y,Д,д
+		[YyДд]*) ;;
+		# Энтер
+		"") ;;
+		# В остальных случаях - выходим из программы
+		*) echo "Операция прервана"; exit 1;;
+	esac
+
+	key_name="$user@$host"
+
+	# Проверка на то, что к ssh можно подключиться
+	# Выполняем на сервере команду echo 'work'
+	response=`sshpass -p "$passwd" ssh -o 'IdentitiesOnly=yes' $key_name 'echo "work"'`
+	if [ "$response" != "work" ]
+	then
+		echo 'Не удалось подключиться к ssh'
+		exit 1
+	fi
+
+	# Генерируем ключ
+	ssh-keygen -t rsa -q -N '' -f ~/.ssh/$key_name
+
+	# Добавляем ключ на удаленный сервер
+	
+
 	echo 'add'
 }
 
@@ -36,7 +75,7 @@ then
 	# Вызываем функцию для вывода помощи
 	-h|-help) help;;
 	# Вызываем функцию для добавления нового сервера
-	-a|-add) echo "Добавить сервер" ;;
+	-a|-add) add $2 $3 $4;;
 	# Вызываем функцию для удаления сервера
 	-d|-delete) echo "Удалить сервер";;
 	# Вызываем фунцкию для установки скрипта
