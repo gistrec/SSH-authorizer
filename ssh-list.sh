@@ -8,6 +8,7 @@ help() {
 	echo "-h или -help    вывести этот текст"
 	echo "-a или -add     добавить сервер"
 	echo "-d или -delete  удалить сервер"
+	echo "-c или -connect подключиться к серверу"
 	echo "-i или -install установить данный скрипт"
 	exit 0
 }
@@ -128,6 +129,33 @@ show() {
 
 }
 
+connect() {
+	# Если параметр - число
+	if [[ $1 =~ ^-?[0-9]+$ ]]
+	then
+		id=0
+		while read line
+		do
+			if [ "$id" == "$1" ]
+			then
+				IFS=' ' read -r -a pieces <<< "$line"
+				user="${pieces[0]}"
+				host="${pieces[1]}"
+
+				echo "Подключаемся к $user@$host"
+				# legacy code
+				gnome-terminal -e "ssh $user@$host"
+				exit
+			fi
+			id=$(($id + 1))
+		done < ~/.ssh/ssh-list
+		echo "Нет сервера с таким id"
+		exit 1
+	else
+		echo "Номер сервера должен быть числом"
+	fi
+}
+
 # Количиство параметров у скрипта
 params_count=$#
 
@@ -141,6 +169,7 @@ then
 	-a|-add) add $2 $3 $4;;
 	# Вызываем функцию для удаления сервера
 	-d|-delete) echo "Удалить сервер";;
+	-c|-connect) connect $2;;
 	# Вызываем фунцкию для установки скрипта
 	# -i|-install) echo "Установить скрипт" ;;
 	*) echo "Неизвестный параметр '$1'";;
